@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { v2 as cloudinary, UploadApiResponse } from 'cloudinary';
 
@@ -10,25 +10,39 @@ const ALLOWED_MIMES: Record<string, string[]> = {
   text: ['text/plain', 'text/markdown'],
 };
 
-// Cloudinary resource_type mapping
 const RESOURCE_TYPE: Record<string, string> = {
   image: 'image',
-  audio: 'video',   // Cloudinary uses "video" for audio too
+  audio: 'video',
   video: 'video',
   document: 'raw',
   text: 'raw',
 };
 
-const MAX_SIZE = 50 * 1024 * 1024; // 50 MB
+const MAX_SIZE = 50 * 1024 * 1024;
 
 @Injectable()
 export class UploadService {
-  constructor(private cfg: ConfigService) {
-    cloudinary.config({
-      cloud_name: this.cfg.get<string>('CLOUDINARY_CLOUD_NAME'),
-      api_key: this.cfg.get<string>('CLOUDINARY_API_KEY'),
-      api_secret: this.cfg.get<string>('CLOUDINARY_API_SECRET'),
-    });
+  private readonly logger = new Logger(UploadService.name);
+  private configured = false;
+
+  constructor(private cfg: ConfigService) {}
+
+  // Configure lazily — ensures env vars are available
+  private ensureConfig() {
+    if (this.configured) return;
+
+    const cloud_name = this.cfg.get<string>('CLOUDINARY_CLOUD_NAME') || process.env.CLOUDINARY_CLOUD_NAME;
+    const api_key = this.cfg.get<string>('CLOUDINARY_API_KEY') || process.env.CLOUDINARY_API_KEY;
+    const api_secret = this.cfg.get<string>('CLOUDINARY_API_SECRET') || process.env.CLOUDINARY_API_SECRET;
+
+    this.logger.log(`Cloudinary config — cloud: ${cloud_name ? '✓' : '✗'}, key: ${api_key ? '✓' : '✗'}, secret: ${api_secret ? '✓' : '✗'}`);
+
+    if (!cloud_name || !api_key || !api_secret) {
+      throw new BadRequestException('Cloudinary not configured. Set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET.');
+    }
+
+    cloudinary.config({ cloud_name, api_key, api_secret });
+    this.configured = true;
   }
 
   validateFile(
@@ -52,6 +66,8 @@ export class UploadService {
     artifactId: string,
     artifactType: string,
   ): Promise<{ url: string; publicId: string }> {
+    this.ensureConfig();
+
     const resourceType = RESOURCE_TYPE[artifactType] ?? 'raw';
 
     const result: UploadApiResponse = await new Promise((resolve, reject) => {
@@ -77,6 +93,8 @@ export class UploadService {
   }
 
   async remove(publicId: string, artifactType: string): Promise<void> {
+    this.ensureConfig();
+
     const resourceType = RESOURCE_TYPE[artifactType] ?? 'raw';
     await cloudinary.uploader
       .destroy(publicId, { resource_type: resourceType as any })
