@@ -73,6 +73,19 @@ export class ArtifactsController {
     return this.artifacts.findAll(pagination, user?.userId, mine);
   }
 
+  // ─── Community review feed (public — what's open for voting) ───
+  @Get('review')
+  async communityReview(@Query() query: any) {
+    let pagination;
+    try {
+      pagination = PaginationSchema.parse(query);
+    } catch (e: any) {
+      if (e instanceof ZodError) throw new BadRequestException(formatZodError(e));
+      throw e;
+    }
+    return this.artifacts.findCommunityReview(pagination);
+  }
+
   // ─── Get artifact by ID ───
   @UseGuards(JwtOptionalGuard)
   @Get(':id')
