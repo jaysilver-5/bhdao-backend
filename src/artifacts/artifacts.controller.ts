@@ -73,40 +73,6 @@ export class ArtifactsController {
     return this.artifacts.findAll(pagination, user?.userId, mine);
   }
 
-  // ─── Search artifacts ───
-  @UseGuards(JwtOptionalGuard)
-  @Get('search')
-  async search(@Query() query: any, @Req() req: Request) {
-    const q = query.q;
-    if (!q || typeof q !== 'string' || q.trim().length < 2) {
-      throw new BadRequestException('Search query "q" must be at least 2 characters');
-    }
-
-    let pagination;
-    try {
-      pagination = PaginationSchema.parse(query);
-    } catch (e: any) {
-      if (e instanceof ZodError) throw new BadRequestException(formatZodError(e));
-      throw e;
-    }
-
-    const user = (req as any).user;
-    return this.artifacts.search(q.trim(), pagination, user?.role);
-  }
-
-  // ─── Community review feed (public — what's open for voting) ───
-  @Get('review')
-  async communityReview(@Query() query: any) {
-    let pagination;
-    try {
-      pagination = PaginationSchema.parse(query);
-    } catch (e: any) {
-      if (e instanceof ZodError) throw new BadRequestException(formatZodError(e));
-      throw e;
-    }
-    return this.artifacts.findCommunityReview(pagination);
-  }
-
   // ─── Get artifact by ID ───
   @UseGuards(JwtOptionalGuard)
   @Get(':id')
@@ -142,10 +108,9 @@ export class ArtifactsController {
   }
 
   // ─── Upload file to Cloudinary staging ───
-  // Accepts JSON: { filename: string, data: string (base64), mimetype: string }
   @UseGuards(JwtAuthGuard)
   @Post(':id/upload')
-  async uploadFile(@Param('id') id: string, @Body() body: any, @Req() req: Request) {
+  async uploadFile(@Param('id') id: string, @Req() req: Request) {
     const user = (req as any).user;
     const artifact = await this.artifacts.findById(id, user.userId, user.role);
 
@@ -157,20 +122,32 @@ export class ArtifactsController {
       throw new BadRequestException('Can only upload files during review');
     }
 
-    if (!body?.filename || !body?.data || !body?.mimetype) {
-      throw new BadRequestException(
-        'Send JSON with fields: filename (string), data (base64 string), mimetype (string)',
-      );
+    // Parse multipart
+    const chunks: Buffer[] = [];
+    for await (const chunk of req) {
+      chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
+    }
+    const rawBody = Buffer.concat(chunks);
+
+    const contentType = req.headers['content-type'] || '';
+    const boundaryMatch = contentType.match(/boundary=(.+)/);
+    if (!boundaryMatch) {
+      throw new BadRequestException('Expected multipart/form-data');
     }
 
-    const buffer = Buffer.from(body.data, 'base64');
+    const parts = parseMultipart(rawBody, boundaryMatch[1]);
+    const filePart = parts.find((p) => p.name === 'file');
+
+    if (!filePart || !filePart.data.length) {
+      throw new BadRequestException('No file provided. Send a "file" field.');
+    }
 
     this.uploads.validateFile(
-      { mimetype: body.mimetype, size: buffer.length, originalname: body.filename },
+      { mimetype: filePart.contentType, size: filePart.data.length, originalname: filePart.filename },
       artifact.type,
     );
 
-    const { url, publicId } = await this.uploads.upload(buffer, artifact.id, artifact.type);
+    const { url, publicId } = await this.uploads.upload(filePart.data, artifact.id, artifact.type);
     const updated = await this.artifacts.setFileInfo(artifact.id, url, publicId, user.userId);
 
     return { ok: true, fileUrl: url, artifact: updated };
@@ -183,4 +160,46 @@ export class ArtifactsController {
     const user = (req as any).user;
     return this.artifacts.getActivity(id, user?.userId, user?.role);
   }
+}
+
+// ─── Minimal multipart parser ───
+
+interface MultipartPart {
+  name: string;
+  filename: string;
+  contentType: string;
+  data: Buffer;
+}
+
+function parseMultipart(body: Buffer, boundary: string): MultipartPart[] {
+  const parts: MultipartPart[] = [];
+  const sepStr = `--${boundary}`;
+  const bodyStr = body.toString('binary');
+
+  const segments = bodyStr.split(sepStr).slice(1);
+
+  for (const segment of segments) {
+    if (segment.startsWith('--')) break;
+
+    const headerEnd = segment.indexOf('\r\n\r\n');
+    if (headerEnd === -1) continue;
+
+    const headerSection = segment.slice(0, headerEnd);
+    const dataSection = segment.slice(headerEnd + 4).replace(/\r\n$/, '');
+
+    const nameMatch = headerSection.match(/name="([^"]+)"/);
+    const filenameMatch = headerSection.match(/filename="([^"]+)"/);
+    const typeMatch = headerSection.match(/Content-Type:\s*(.+)/i);
+
+    if (nameMatch) {
+      parts.push({
+        name: nameMatch[1],
+        filename: filenameMatch?.[1] ?? '',
+        contentType: typeMatch?.[1]?.trim() ?? 'application/octet-stream',
+        data: Buffer.from(dataSection, 'binary'),
+      });
+    }
+  }
+
+  return parts;
 }
