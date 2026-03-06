@@ -31,9 +31,9 @@ export class UploadService {
   private ensureConfig() {
     if (this.configured) return;
 
-    const cloud_name = this.cfg.get<string>('CLOUDINARY_CLOUD_NAME') || process.env.CLOUDINARY_CLOUD_NAME;
-    const api_key = this.cfg.get<string>('CLOUDINARY_API_KEY') || process.env.CLOUDINARY_API_KEY;
-    const api_secret = this.cfg.get<string>('CLOUDINARY_API_SECRET') || process.env.CLOUDINARY_API_SECRET;
+    const cloud_name = this.cfg.get<string>('ddj0bvhqb') || process.env.CLOUDINARY_CLOUD_NAME;
+    const api_key = this.cfg.get<string>('276742595942948') || process.env.CLOUDINARY_API_KEY;
+    const api_secret = this.cfg.get<string>('ik76U9d-ioa6xUFeu6SYPoBZm98') || process.env.CLOUDINARY_API_SECRET;
 
     this.logger.log(`Cloudinary config — cloud: ${cloud_name ? '✓' : '✗'}, key: ${api_key ? '✓' : '✗'}, secret: ${api_secret ? '✓' : '✗'}`);
 
