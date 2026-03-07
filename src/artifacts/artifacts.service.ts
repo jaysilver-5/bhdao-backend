@@ -86,26 +86,26 @@ export class ArtifactsService {
 
   // ─── List all artifacts (admin/expert — for dashboard/debug) ───
 
-  // async findAllByStatus(status: string, pagination: PaginationDto) {
-  //   const { page, limit } = pagination;
-  //   const skip = (page - 1) * limit;
+  async findAllByStatus(status: string, pagination: PaginationDto) {
+    const { page, limit } = pagination;
+    const skip = (page - 1) * limit;
 
-  //   const where = status === 'ALL' ? {} : { status: status as any };
+    const where = status === 'ALL' ? {} : { status: status as any };
 
-  //   const [items, total] = await Promise.all([
-  //     this.prisma.artifact.findMany({
-  //       where,
-  //       orderBy: { createdAt: 'desc' },
-  //       skip,
-  //       take: limit,
-  //       include: {
-  //         submittedBy: { select: { id: true, wallet: true } },
-  //       },
-  //     }),
-  //     this.prisma.artifact.count({ where }),
-  //   ]);
-  //   return { items, total, page, limit };
-  // }
+    const [items, total] = await Promise.all([
+      this.prisma.artifact.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+        include: {
+          submittedBy: { select: { id: true, wallet: true } },
+        },
+      }),
+      this.prisma.artifact.count({ where }),
+    ]);
+    return { items, total, page, limit };
+  }
 
   // ─── Community review feed (public — shows what's open for voting) ───
 
@@ -172,10 +172,12 @@ export class ArtifactsService {
 
     if (!artifact) throw new NotFoundException('Artifact not found');
 
-    // Public access: VERIFIED only
-    if (artifact.status === 'VERIFIED') return artifact;
+    // Public statuses — anyone can view
+    if (artifact.status === 'VERIFIED' || artifact.status === 'COMMUNITY_REVIEW') {
+      return artifact;
+    }
 
-    // Non-verified: must be submitter, expert, or admin
+    // All other statuses: must be submitter, expert, or admin
     if (!callerId) throw new NotFoundException('Artifact not found');
 
     const isOwner = artifact.submittedById === callerId;
