@@ -10,9 +10,13 @@ export class ChainService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(ChainService.name);
   private api: ApiPromise | null = null;
   private signer: any = null;
+  private contract: any = null; // ContractPromise when Level 2 is active
 
   private readonly rpcUrl: string;
   private readonly seed: string;
+  private readonly contractAddress: string;
+  private readonly contractAbi: any;
+  private useContract = false;
 
   constructor(
     private prisma: PrismaService,
@@ -20,6 +24,7 @@ export class ChainService implements OnModuleInit, OnModuleDestroy {
   ) {
     this.rpcUrl = this.cfg.get<string>('POLKADOT_RPC') ?? 'wss://rpc.ibp.network/paseo';
     this.seed = this.cfg.get<string>('ANCHOR_SEED') ?? '//Alice';
+    this.contractAddress = this.cfg.get<string>('INK_CONTRACT_ADDRESS') ?? '';
   }
 
   async onModuleInit() {
@@ -32,20 +37,39 @@ export class ChainService implements OnModuleInit, OnModuleDestroy {
 
       this.logger.log(`Connected to ${this.rpcUrl}`);
       this.logger.log(`Anchor wallet: ${this.signer.address}`);
+
+      // If contract address is configured, try to load contract
+      if (this.contractAddress) {
+        try {
+          const { ContractPromise } = await import('@polkadot/api-contract');
+          const fs = await import('fs');
+          const path = await import('path');
+
+          const abiPath = path.join(process.cwd(), 'contracts', 'bhdao_registry.json');
+          if (fs.existsSync(abiPath)) {
+            const abi = JSON.parse(fs.readFileSync(abiPath, 'utf8'));
+            this.contract = new ContractPromise(this.api as any, abi, this.contractAddress);
+            this.useContract = true;
+            this.logger.log(`Level 2: ink! contract loaded at ${this.contractAddress}`);
+          } else {
+            this.logger.warn(`Contract ABI not found at ${abiPath} — using Level 1 (remark)`);
+          }
+        } catch (e) {
+          this.logger.warn(`Could not load ink! contract — using Level 1 (remark): ${e}`);
+        }
+      } else {
+        this.logger.log('No INK_CONTRACT_ADDRESS set — using Level 1 (system.remark)');
+      }
     } catch (e) {
-      this.logger.error(`Failed to connect to Polkadot node: ${e}`);
-      // Don't crash the app — anchoring is optional
+      this.logger.error(`Polkadot connection failed: ${e}`);
     }
   }
 
   async onModuleDestroy() {
-    if (this.api) {
-      await this.api.disconnect();
-      this.logger.log('Disconnected from Polkadot node');
-    }
+    if (this.api) await this.api.disconnect();
   }
 
-  // ─── Build canonical proof hash ───
+  // ─── Build proof hash ───
 
   buildProofPayload(artifact: {
     id: string;
@@ -65,45 +89,29 @@ export class ChainService implements OnModuleInit, OnModuleDestroy {
       verifiedAt: artifact.verifiedAt,
       expertWallet: artifact.expertWallet,
     });
-
     const hash = createHash('sha256').update(canonical).digest('hex');
-
     return { canonical, hash };
   }
 
-  // ─── Anchor proof to Paseo via system.remark ───
+  // ─── Anchor proof (auto-selects Level 1 or Level 2) ───
 
-  async anchorProof(artifactId: string, expertId: string): Promise<{
-    txHash: string;
-    blockNumber: number;
-  } | null> {
+  async anchorProof(
+    artifactId: string,
+    expertId: string,
+  ): Promise<{ txHash: string; blockNumber: number } | null> {
     if (!this.api || !this.signer) {
       this.logger.warn('Chain not connected — skipping anchor');
       return null;
     }
 
-    // Fetch artifact with relations
     const artifact = await this.prisma.artifact.findUnique({
       where: { id: artifactId },
-      include: {
-        submittedBy: { select: { id: true, wallet: true } },
-      },
+      include: { submittedBy: { select: { id: true, wallet: true } } },
     });
+    if (!artifact) return null;
 
-    if (!artifact) {
-      this.logger.error(`Artifact ${artifactId} not found`);
-      return null;
-    }
-
-    // Fetch expert wallet
-    const expert = await this.prisma.user.findUnique({
-      where: { id: expertId },
-    });
-
-    if (!expert) {
-      this.logger.error(`Expert ${expertId} not found`);
-      return null;
-    }
+    const expert = await this.prisma.user.findUnique({ where: { id: expertId } });
+    if (!expert) return null;
 
     const now = new Date().toISOString();
     const { canonical, hash } = this.buildProofPayload({
@@ -117,43 +125,18 @@ export class ChainService implements OnModuleInit, OnModuleDestroy {
       verifiedAt: now,
     });
 
-    this.logger.log(`Anchoring artifact ${artifactId}`);
-    this.logger.log(`Proof hash: ${hash}`);
+    this.logger.log(`Anchoring ${artifactId} (${this.useContract ? 'Level 2: contract' : 'Level 1: remark'})`);
 
     try {
-      // Build remark with prefix for easy identification
-      const remark = `BHDAO:v1:${hash}`;
+      let result: { txHash: string; blockNumber: number };
 
-      const result = await new Promise<{ txHash: string; blockNumber: number }>(
-        (resolve, reject) => {
-          this.api!.tx.system
-            .remark(remark)
-            .signAndSend(this.signer, ({ status, txHash, events }) => {
-              if (status.isInBlock) {
-                const blockHash = status.asInBlock.toString();
-                this.logger.log(`Tx in block: ${blockHash}`);
+      if (this.useContract && this.contract) {
+        result = await this.anchorViaContract(artifactId, artifact, expert, hash);
+      } else {
+        result = await this.anchorViaRemark(hash);
+      }
 
-                // Get block number
-                this.api!.rpc.chain
-                  .getHeader(blockHash as any)
-                  .then((header) => {
-                    resolve({
-                      txHash: txHash.toString(),
-                      blockNumber: header.number.toNumber(),
-                    });
-                  })
-                  .catch(reject);
-              } else if (status.isFinalized) {
-                this.logger.log(`Tx finalized: ${status.asFinalized.toString()}`);
-              } else if (status.isDropped || status.isInvalid) {
-                reject(new Error(`Transaction failed: ${status.type}`));
-              }
-            })
-            .catch(reject);
-        },
-      );
-
-      // Update artifact with chain proof
+      // Update artifact
       await this.prisma.artifact.update({
         where: { id: artifactId },
         data: {
@@ -163,7 +146,7 @@ export class ChainService implements OnModuleInit, OnModuleDestroy {
         },
       });
 
-      // Emit audit event
+      // Emit event
       await this.prisma.artifactEvent.create({
         data: {
           artifactId,
@@ -175,33 +158,101 @@ export class ChainService implements OnModuleInit, OnModuleDestroy {
             proofHash: hash,
             canonical,
             network: 'paseo',
+            level: this.useContract ? 2 : 1,
           },
         },
       });
 
       this.logger.log(`Anchored: tx=${result.txHash} block=${result.blockNumber}`);
-
       return result;
-    } catch (e) {
-      this.logger.error(`Anchor failed for ${artifactId}: ${e}`);
+    } catch (e: any) {
+      this.logger.error(`Anchor failed: ${e?.message ?? e}`);
       return null;
     }
   }
 
-  // ─── Verify a proof (for public verification endpoint) ───
+  // ─── Level 1: system.remark ───
 
-  verifyProof(artifact: {
-    id: string;
-    title: string;
-    cid?: string | null;
-    submittedByWallet: string;
-    expertWallet: string;
-    verifiedAt: string;
-  }): { hash: string; canonical: string } {
-    return this.buildProofPayload({
-      ...artifact,
-      submittedById: '',
-      expertId: '',
+  private async anchorViaRemark(hash: string): Promise<{ txHash: string; blockNumber: number }> {
+    const remark = `BHDAO:v1:${hash}`;
+
+    return new Promise((resolve, reject) => {
+      this.api!.tx.system
+        .remark(remark)
+        .signAndSend(this.signer, ({ status, txHash }) => {
+          if (status.isInBlock) {
+            this.api!.rpc.chain
+              .getHeader(status.asInBlock as any)
+              .then((header) => {
+                resolve({
+                  txHash: txHash.toString(),
+                  blockNumber: header.number.toNumber(),
+                });
+              })
+              .catch(reject);
+          } else if (status.isDropped || status.isInvalid) {
+            reject(new Error(`Transaction failed: ${status.type}`));
+          }
+        })
+        .catch(reject);
+    });
+  }
+
+  // ─── Level 2: ink! contract call ───
+
+  private async anchorViaContract(
+    artifactId: string,
+    artifact: any,
+    expert: any,
+    proofHash: string,
+  ): Promise<{ txHash: string; blockNumber: number }> {
+    // Convert artifact UUID to bytes32 hash
+    const artifactHash = Array.from(
+      Buffer.from(createHash('sha256').update(artifactId).digest('hex').slice(0, 64), 'hex'),
+    );
+
+    const metadataHash = Array.from(
+      Buffer.from(proofHash.slice(0, 64), 'hex'),
+    );
+
+    // Dry run to estimate gas
+    const { gasRequired } = await this.contract.query.registerArtifact(
+      this.signer.address,
+      { gasLimit: this.api!.registry.createType('WeightV2', { refTime: 100_000_000_000, proofSize: 1_000_000 }) as any },
+      artifactHash,
+      artifact.cid ?? '',
+      artifact.submittedBy.wallet,
+      expert.wallet,
+      metadataHash,
+    );
+
+    // Execute with estimated gas + buffer
+    return new Promise((resolve, reject) => {
+      this.contract.tx
+        .registerArtifact(
+          { gasLimit: gasRequired as any },
+          artifactHash,
+          artifact.cid ?? '',
+          artifact.submittedBy.wallet,
+          expert.wallet,
+          metadataHash,
+        )
+        .signAndSend(this.signer, ({ status, txHash }: any) => {
+          if (status.isInBlock) {
+            this.api!.rpc.chain
+              .getHeader(status.asInBlock)
+              .then((header: any) => {
+                resolve({
+                  txHash: txHash.toString(),
+                  blockNumber: header.number.toNumber(),
+                });
+              })
+              .catch(reject);
+          } else if (status.isDropped || status.isInvalid) {
+            reject(new Error(`Contract tx failed: ${status.type}`));
+          }
+        })
+        .catch(reject);
     });
   }
 }

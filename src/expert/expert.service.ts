@@ -1,12 +1,10 @@
 import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-  ConflictException,
-  Logger,
+  Injectable, NotFoundException, BadRequestException,
+  ConflictException, Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ChainService } from '../chain/chain.service';
+import { BitcoinService } from '../chain/bitcoin.service';
 import { IpfsService } from '../ipfs/ipfs.service';
 import { ExpertDecision } from '../generated/prisma/client';
 
@@ -17,20 +15,17 @@ export class ExpertService {
   constructor(
     private prisma: PrismaService,
     private chain: ChainService,
+    private bitcoin: BitcoinService,
     private ipfs: IpfsService,
   ) {}
 
-  // ─── Queue: list all EXPERT_REVIEW artifacts ───
-
   async getQueue(page: number, limit: number) {
     const skip = (page - 1) * limit;
-
     const [items, total] = await Promise.all([
       this.prisma.artifact.findMany({
         where: { status: 'EXPERT_REVIEW' },
-        orderBy: { createdAt: 'asc' }, // oldest first
-        skip,
-        take: limit,
+        orderBy: { createdAt: 'asc' },
+        skip, take: limit,
         include: {
           submittedBy: { select: { id: true, wallet: true } },
           votes: { select: { value: true } },
@@ -40,22 +35,17 @@ export class ExpertService {
       this.prisma.artifact.count({ where: { status: 'EXPERT_REVIEW' } }),
     ]);
 
-    // Enrich with vote summary
     const enriched = items.map((a) => {
       const approves = a.votes.filter((v) => v.value === 'APPROVE').length;
-      const rejects = a.votes.filter((v) => v.value === 'REJECT').length;
       const { votes, ...rest } = a;
       return {
         ...rest,
-        voteSummary: { approve: approves, reject: rejects, total: votes.length },
+        voteSummary: { approve: approves, reject: votes.length - approves, total: votes.length },
         flagCount: a.flags.length,
       };
     });
-
     return { items: enriched, total, page, limit };
   }
-
-  // ─── Submit expert decision ───
 
   async submitDecision(
     artifactId: string,
@@ -64,120 +54,108 @@ export class ExpertService {
     notes?: string,
     checklist?: Record<string, boolean>,
   ) {
-    const artifact = await this.prisma.artifact.findUnique({
-      where: { id: artifactId },
-    });
-
+    const artifact = await this.prisma.artifact.findUnique({ where: { id: artifactId } });
     if (!artifact) throw new NotFoundException('Artifact not found');
-
     if (artifact.status !== 'EXPERT_REVIEW') {
-      throw new BadRequestException(
-        `Artifact is in ${artifact.status}, not EXPERT_REVIEW`,
-      );
+      throw new BadRequestException(`Artifact is in ${artifact.status}, not EXPERT_REVIEW`);
     }
 
-    // Check for duplicate review
     const existing = await this.prisma.expertReview.findUnique({
       where: { artifactId_expertId: { artifactId, expertId } },
     });
+    if (existing) throw new ConflictException('You have already reviewed this artifact');
 
-    if (existing) {
-      throw new ConflictException('You have already reviewed this artifact');
-    }
-
-    // Create review
     const review = await this.prisma.expertReview.create({
-      data: {
-        artifactId,
-        expertId,
-        decision,
-        notes,
-        checklist: checklist ?? undefined,
-      },
+      data: { artifactId, expertId, decision, notes, checklist: checklist ?? undefined },
     });
 
-    // Transition status based on decision
     const newStatus = decision === 'APPROVE' ? 'VERIFIED' : 'REJECTED';
 
-    await this.prisma.artifact.update({
-      where: { id: artifactId },
-      data: { status: newStatus },
-    });
+    await this.prisma.artifact.update({ where: { id: artifactId }, data: { status: newStatus } });
 
-    // Emit EXPERT_REVIEWED event
     await this.prisma.artifactEvent.create({
-      data: {
-        artifactId,
-        actorId: expertId,
-        type: 'EXPERT_REVIEWED',
-        payload: { decision, notes },
-      },
+      data: { artifactId, actorId: expertId, type: 'EXPERT_REVIEWED', payload: { decision, notes } },
     });
-
-    // Emit STATUS_CHANGE event
     await this.prisma.artifactEvent.create({
-      data: {
-        artifactId,
-        actorId: expertId,
-        type: 'STATUS_CHANGE',
-        payload: { from: 'EXPERT_REVIEW', to: newStatus },
-      },
+      data: { artifactId, actorId: expertId, type: 'STATUS_CHANGE', payload: { from: 'EXPERT_REVIEW', to: newStatus } },
     });
 
-    // Auto-pin to IPFS and anchor to Paseo if approved
+    // ─── Auto-pin + dual-chain anchor on VERIFIED ───
+
     let anchor: { txHash: string; blockNumber: number } | null = null;
+    let btcAnchor: { btcTxHash: string; explorerUrl: string } | null = null;
     let pin: { cid: string; gatewayUrl: string } | null = null;
 
     if (newStatus === 'VERIFIED') {
-      // 1. Pin to IPFS first (so CID is available for chain anchor)
+      // 1. IPFS pin
       try {
         pin = await this.ipfs.pinArtifact(artifactId, expertId);
-        this.logger.log(`Auto-pinned ${artifactId}: CID=${pin.cid}`);
+        this.logger.log(`Pinned ${artifactId}: ${pin.cid}`);
       } catch (e: any) {
-        this.logger.error(`Auto-pin failed for ${artifactId}: ${e?.message}`);
+        this.logger.error(`Pin failed: ${e?.message}`);
       }
 
-      // 2. Anchor to Paseo (includes CID if pin succeeded)
+      // 2. Polkadot anchor
       try {
         anchor = await this.chain.anchorProof(artifactId, expertId);
-        if (anchor) {
-          this.logger.log(`Auto-anchored ${artifactId}: tx=${anchor.txHash}`);
+        if (anchor) this.logger.log(`Polkadot anchored ${artifactId}: ${anchor.txHash}`);
+      } catch (e: any) {
+        this.logger.error(`Polkadot failed: ${e?.message}`);
+      }
+
+      // 3. Bitcoin anchor
+      try {
+        const a = await this.prisma.artifact.findUnique({
+          where: { id: artifactId },
+          include: {
+            submittedBy: { select: { wallet: true } },
+            expertReviews: {
+              where: { decision: 'APPROVE' },
+              include: { expert: { select: { wallet: true } } },
+              take: 1,
+            },
+          },
+        });
+
+        if (a) {
+          const { hash } = this.chain.buildProofPayload({
+            id: a.id, title: a.title, cid: a.cid,
+            submittedById: a.submittedBy.wallet,
+            submittedByWallet: a.submittedBy.wallet,
+            expertId: a.expertReviews[0]?.expert?.wallet ?? '',
+            expertWallet: a.expertReviews[0]?.expert?.wallet ?? '',
+            verifiedAt: new Date().toISOString(),
+          });
+          btcAnchor = await this.bitcoin.anchorProof(artifactId, hash, expertId);
+          if (btcAnchor) this.logger.log(`Bitcoin anchored ${artifactId}: ${btcAnchor.btcTxHash}`);
         }
       } catch (e: any) {
-        this.logger.error(`Auto-anchor failed for ${artifactId}: ${e?.message}`);
+        this.logger.error(`Bitcoin failed: ${e?.message}`);
       }
     }
 
     return {
       review,
       newStatus,
-      pin: pin
-        ? { cid: pin.cid, gatewayUrl: pin.gatewayUrl }
-        : null,
-      anchor: anchor
-        ? {
-            txHash: anchor.txHash,
-            blockNumber: anchor.blockNumber,
-            explorerUrl: `https://paseo.subscan.io/extrinsic/${anchor.txHash}`,
-          }
-        : null,
+      pin: pin ? { cid: pin.cid, gatewayUrl: pin.gatewayUrl } : null,
+      anchor: anchor ? {
+        chain: 'polkadot', txHash: anchor.txHash,
+        blockNumber: anchor.blockNumber,
+        explorerUrl: `https://paseo.subscan.io/extrinsic/${anchor.txHash}`,
+      } : null,
+      btcAnchor: btcAnchor ? {
+        chain: 'bitcoin', btcTxHash: btcAnchor.btcTxHash,
+        explorerUrl: btcAnchor.explorerUrl,
+      } : null,
     };
   }
 
-  // ─── Get reviews for an artifact ───
-
   async getReviews(artifactId: string) {
-    const artifact = await this.prisma.artifact.findUnique({
-      where: { id: artifactId },
-    });
-
+    const artifact = await this.prisma.artifact.findUnique({ where: { id: artifactId } });
     if (!artifact) throw new NotFoundException('Artifact not found');
-
     return this.prisma.expertReview.findMany({
       where: { artifactId },
-      include: {
-        expert: { select: { id: true, wallet: true } },
-      },
+      include: { expert: { select: { id: true, wallet: true } } },
       orderBy: { createdAt: 'desc' },
     });
   }

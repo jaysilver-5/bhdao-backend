@@ -49,6 +49,7 @@ export type ArtifactMinAggregateOutputType = {
   chainTxHash: string | null
   chainBlock: number | null
   anchoredAt: Date | null
+  btcTxHash: string | null
   createdAt: Date | null
   updatedAt: Date | null
   reviewEndsAt: Date | null
@@ -70,6 +71,7 @@ export type ArtifactMaxAggregateOutputType = {
   chainTxHash: string | null
   chainBlock: number | null
   anchoredAt: Date | null
+  btcTxHash: string | null
   createdAt: Date | null
   updatedAt: Date | null
   reviewEndsAt: Date | null
@@ -92,6 +94,7 @@ export type ArtifactCountAggregateOutputType = {
   chainTxHash: number
   chainBlock: number
   anchoredAt: number
+  btcTxHash: number
   createdAt: number
   updatedAt: number
   reviewEndsAt: number
@@ -123,6 +126,7 @@ export type ArtifactMinAggregateInputType = {
   chainTxHash?: true
   chainBlock?: true
   anchoredAt?: true
+  btcTxHash?: true
   createdAt?: true
   updatedAt?: true
   reviewEndsAt?: true
@@ -144,6 +148,7 @@ export type ArtifactMaxAggregateInputType = {
   chainTxHash?: true
   chainBlock?: true
   anchoredAt?: true
+  btcTxHash?: true
   createdAt?: true
   updatedAt?: true
   reviewEndsAt?: true
@@ -166,6 +171,7 @@ export type ArtifactCountAggregateInputType = {
   chainTxHash?: true
   chainBlock?: true
   anchoredAt?: true
+  btcTxHash?: true
   createdAt?: true
   updatedAt?: true
   reviewEndsAt?: true
@@ -275,6 +281,7 @@ export type ArtifactGroupByOutputType = {
   chainTxHash: string | null
   chainBlock: number | null
   anchoredAt: Date | null
+  btcTxHash: string | null
   createdAt: Date
   updatedAt: Date
   reviewEndsAt: Date | null
@@ -286,7 +293,7 @@ export type ArtifactGroupByOutputType = {
   _max: ArtifactMaxAggregateOutputType | null
 }
 
-type GetArtifactGroupByPayload<T extends ArtifactGroupByArgs> = Prisma.PrismaPromise<
+export type GetArtifactGroupByPayload<T extends ArtifactGroupByArgs> = Prisma.PrismaPromise<
   Array<
     Prisma.PickEnumerable<ArtifactGroupByOutputType, T['by']> &
       {
@@ -320,6 +327,7 @@ export type ArtifactWhereInput = {
   chainTxHash?: Prisma.StringNullableFilter<"Artifact"> | string | null
   chainBlock?: Prisma.IntNullableFilter<"Artifact"> | number | null
   anchoredAt?: Prisma.DateTimeNullableFilter<"Artifact"> | Date | string | null
+  btcTxHash?: Prisma.StringNullableFilter<"Artifact"> | string | null
   createdAt?: Prisma.DateTimeFilter<"Artifact"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Artifact"> | Date | string
   reviewEndsAt?: Prisma.DateTimeNullableFilter<"Artifact"> | Date | string | null
@@ -348,6 +356,7 @@ export type ArtifactOrderByWithRelationInput = {
   chainTxHash?: Prisma.SortOrderInput | Prisma.SortOrder
   chainBlock?: Prisma.SortOrderInput | Prisma.SortOrder
   anchoredAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  btcTxHash?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   reviewEndsAt?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -379,6 +388,7 @@ export type ArtifactWhereUniqueInput = Prisma.AtLeast<{
   chainTxHash?: Prisma.StringNullableFilter<"Artifact"> | string | null
   chainBlock?: Prisma.IntNullableFilter<"Artifact"> | number | null
   anchoredAt?: Prisma.DateTimeNullableFilter<"Artifact"> | Date | string | null
+  btcTxHash?: Prisma.StringNullableFilter<"Artifact"> | string | null
   createdAt?: Prisma.DateTimeFilter<"Artifact"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Artifact"> | Date | string
   reviewEndsAt?: Prisma.DateTimeNullableFilter<"Artifact"> | Date | string | null
@@ -407,6 +417,7 @@ export type ArtifactOrderByWithAggregationInput = {
   chainTxHash?: Prisma.SortOrderInput | Prisma.SortOrder
   chainBlock?: Prisma.SortOrderInput | Prisma.SortOrder
   anchoredAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  btcTxHash?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   reviewEndsAt?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -437,6 +448,7 @@ export type ArtifactScalarWhereWithAggregatesInput = {
   chainTxHash?: Prisma.StringNullableWithAggregatesFilter<"Artifact"> | string | null
   chainBlock?: Prisma.IntNullableWithAggregatesFilter<"Artifact"> | number | null
   anchoredAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Artifact"> | Date | string | null
+  btcTxHash?: Prisma.StringNullableWithAggregatesFilter<"Artifact"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Artifact"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Artifact"> | Date | string
   reviewEndsAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Artifact"> | Date | string | null
@@ -459,6 +471,7 @@ export type ArtifactCreateInput = {
   chainTxHash?: string | null
   chainBlock?: number | null
   anchoredAt?: Date | string | null
+  btcTxHash?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   reviewEndsAt?: Date | string | null
@@ -486,6 +499,7 @@ export type ArtifactUncheckedCreateInput = {
   chainTxHash?: string | null
   chainBlock?: number | null
   anchoredAt?: Date | string | null
+  btcTxHash?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   reviewEndsAt?: Date | string | null
@@ -513,6 +527,7 @@ export type ArtifactUpdateInput = {
   chainTxHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   chainBlock?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   anchoredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  btcTxHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   reviewEndsAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -540,6 +555,7 @@ export type ArtifactUncheckedUpdateInput = {
   chainTxHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   chainBlock?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   anchoredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  btcTxHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   reviewEndsAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -567,6 +583,7 @@ export type ArtifactCreateManyInput = {
   chainTxHash?: string | null
   chainBlock?: number | null
   anchoredAt?: Date | string | null
+  btcTxHash?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   reviewEndsAt?: Date | string | null
@@ -589,6 +606,7 @@ export type ArtifactUpdateManyMutationInput = {
   chainTxHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   chainBlock?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   anchoredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  btcTxHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   reviewEndsAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -610,6 +628,7 @@ export type ArtifactUncheckedUpdateManyInput = {
   chainTxHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   chainBlock?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   anchoredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  btcTxHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   reviewEndsAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -650,6 +669,7 @@ export type ArtifactCountOrderByAggregateInput = {
   chainTxHash?: Prisma.SortOrder
   chainBlock?: Prisma.SortOrder
   anchoredAt?: Prisma.SortOrder
+  btcTxHash?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   reviewEndsAt?: Prisma.SortOrder
@@ -675,6 +695,7 @@ export type ArtifactMaxOrderByAggregateInput = {
   chainTxHash?: Prisma.SortOrder
   chainBlock?: Prisma.SortOrder
   anchoredAt?: Prisma.SortOrder
+  btcTxHash?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   reviewEndsAt?: Prisma.SortOrder
@@ -696,6 +717,7 @@ export type ArtifactMinOrderByAggregateInput = {
   chainTxHash?: Prisma.SortOrder
   chainBlock?: Prisma.SortOrder
   anchoredAt?: Prisma.SortOrder
+  btcTxHash?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   reviewEndsAt?: Prisma.SortOrder
@@ -868,6 +890,7 @@ export type ArtifactCreateWithoutSubmittedByInput = {
   chainTxHash?: string | null
   chainBlock?: number | null
   anchoredAt?: Date | string | null
+  btcTxHash?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   reviewEndsAt?: Date | string | null
@@ -894,6 +917,7 @@ export type ArtifactUncheckedCreateWithoutSubmittedByInput = {
   chainTxHash?: string | null
   chainBlock?: number | null
   anchoredAt?: Date | string | null
+  btcTxHash?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   reviewEndsAt?: Date | string | null
@@ -949,6 +973,7 @@ export type ArtifactScalarWhereInput = {
   chainTxHash?: Prisma.StringNullableFilter<"Artifact"> | string | null
   chainBlock?: Prisma.IntNullableFilter<"Artifact"> | number | null
   anchoredAt?: Prisma.DateTimeNullableFilter<"Artifact"> | Date | string | null
+  btcTxHash?: Prisma.StringNullableFilter<"Artifact"> | string | null
   createdAt?: Prisma.DateTimeFilter<"Artifact"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Artifact"> | Date | string
   reviewEndsAt?: Prisma.DateTimeNullableFilter<"Artifact"> | Date | string | null
@@ -971,6 +996,7 @@ export type ArtifactCreateWithoutVotesInput = {
   chainTxHash?: string | null
   chainBlock?: number | null
   anchoredAt?: Date | string | null
+  btcTxHash?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   reviewEndsAt?: Date | string | null
@@ -997,6 +1023,7 @@ export type ArtifactUncheckedCreateWithoutVotesInput = {
   chainTxHash?: string | null
   chainBlock?: number | null
   anchoredAt?: Date | string | null
+  btcTxHash?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   reviewEndsAt?: Date | string | null
@@ -1039,6 +1066,7 @@ export type ArtifactUpdateWithoutVotesInput = {
   chainTxHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   chainBlock?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   anchoredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  btcTxHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   reviewEndsAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1065,6 +1093,7 @@ export type ArtifactUncheckedUpdateWithoutVotesInput = {
   chainTxHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   chainBlock?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   anchoredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  btcTxHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   reviewEndsAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1091,6 +1120,7 @@ export type ArtifactCreateWithoutCommentsInput = {
   chainTxHash?: string | null
   chainBlock?: number | null
   anchoredAt?: Date | string | null
+  btcTxHash?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   reviewEndsAt?: Date | string | null
@@ -1117,6 +1147,7 @@ export type ArtifactUncheckedCreateWithoutCommentsInput = {
   chainTxHash?: string | null
   chainBlock?: number | null
   anchoredAt?: Date | string | null
+  btcTxHash?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   reviewEndsAt?: Date | string | null
@@ -1159,6 +1190,7 @@ export type ArtifactUpdateWithoutCommentsInput = {
   chainTxHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   chainBlock?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   anchoredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  btcTxHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   reviewEndsAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1185,6 +1217,7 @@ export type ArtifactUncheckedUpdateWithoutCommentsInput = {
   chainTxHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   chainBlock?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   anchoredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  btcTxHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   reviewEndsAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1211,6 +1244,7 @@ export type ArtifactCreateWithoutFlagsInput = {
   chainTxHash?: string | null
   chainBlock?: number | null
   anchoredAt?: Date | string | null
+  btcTxHash?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   reviewEndsAt?: Date | string | null
@@ -1237,6 +1271,7 @@ export type ArtifactUncheckedCreateWithoutFlagsInput = {
   chainTxHash?: string | null
   chainBlock?: number | null
   anchoredAt?: Date | string | null
+  btcTxHash?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   reviewEndsAt?: Date | string | null
@@ -1279,6 +1314,7 @@ export type ArtifactUpdateWithoutFlagsInput = {
   chainTxHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   chainBlock?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   anchoredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  btcTxHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   reviewEndsAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1305,6 +1341,7 @@ export type ArtifactUncheckedUpdateWithoutFlagsInput = {
   chainTxHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   chainBlock?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   anchoredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  btcTxHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   reviewEndsAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1331,6 +1368,7 @@ export type ArtifactCreateWithoutExpertReviewsInput = {
   chainTxHash?: string | null
   chainBlock?: number | null
   anchoredAt?: Date | string | null
+  btcTxHash?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   reviewEndsAt?: Date | string | null
@@ -1357,6 +1395,7 @@ export type ArtifactUncheckedCreateWithoutExpertReviewsInput = {
   chainTxHash?: string | null
   chainBlock?: number | null
   anchoredAt?: Date | string | null
+  btcTxHash?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   reviewEndsAt?: Date | string | null
@@ -1399,6 +1438,7 @@ export type ArtifactUpdateWithoutExpertReviewsInput = {
   chainTxHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   chainBlock?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   anchoredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  btcTxHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   reviewEndsAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1425,6 +1465,7 @@ export type ArtifactUncheckedUpdateWithoutExpertReviewsInput = {
   chainTxHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   chainBlock?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   anchoredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  btcTxHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   reviewEndsAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1451,6 +1492,7 @@ export type ArtifactCreateWithoutEventsInput = {
   chainTxHash?: string | null
   chainBlock?: number | null
   anchoredAt?: Date | string | null
+  btcTxHash?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   reviewEndsAt?: Date | string | null
@@ -1477,6 +1519,7 @@ export type ArtifactUncheckedCreateWithoutEventsInput = {
   chainTxHash?: string | null
   chainBlock?: number | null
   anchoredAt?: Date | string | null
+  btcTxHash?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   reviewEndsAt?: Date | string | null
@@ -1519,6 +1562,7 @@ export type ArtifactUpdateWithoutEventsInput = {
   chainTxHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   chainBlock?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   anchoredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  btcTxHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   reviewEndsAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1545,6 +1589,7 @@ export type ArtifactUncheckedUpdateWithoutEventsInput = {
   chainTxHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   chainBlock?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   anchoredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  btcTxHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   reviewEndsAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1571,6 +1616,7 @@ export type ArtifactCreateManySubmittedByInput = {
   chainTxHash?: string | null
   chainBlock?: number | null
   anchoredAt?: Date | string | null
+  btcTxHash?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   reviewEndsAt?: Date | string | null
@@ -1592,6 +1638,7 @@ export type ArtifactUpdateWithoutSubmittedByInput = {
   chainTxHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   chainBlock?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   anchoredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  btcTxHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   reviewEndsAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1618,6 +1665,7 @@ export type ArtifactUncheckedUpdateWithoutSubmittedByInput = {
   chainTxHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   chainBlock?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   anchoredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  btcTxHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   reviewEndsAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1644,6 +1692,7 @@ export type ArtifactUncheckedUpdateManyWithoutSubmittedByInput = {
   chainTxHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   chainBlock?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   anchoredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  btcTxHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   reviewEndsAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1732,6 +1781,7 @@ export type ArtifactSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs
   chainTxHash?: boolean
   chainBlock?: boolean
   anchoredAt?: boolean
+  btcTxHash?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   reviewEndsAt?: boolean
@@ -1761,6 +1811,7 @@ export type ArtifactSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exte
   chainTxHash?: boolean
   chainBlock?: boolean
   anchoredAt?: boolean
+  btcTxHash?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   reviewEndsAt?: boolean
@@ -1784,6 +1835,7 @@ export type ArtifactSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exte
   chainTxHash?: boolean
   chainBlock?: boolean
   anchoredAt?: boolean
+  btcTxHash?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   reviewEndsAt?: boolean
@@ -1807,13 +1859,14 @@ export type ArtifactSelectScalar = {
   chainTxHash?: boolean
   chainBlock?: boolean
   anchoredAt?: boolean
+  btcTxHash?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   reviewEndsAt?: boolean
   submittedById?: boolean
 }
 
-export type ArtifactOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "title" | "description" | "type" | "sourceUrl" | "language" | "license" | "tags" | "status" | "cid" | "fileUrl" | "fileId" | "chainTxHash" | "chainBlock" | "anchoredAt" | "createdAt" | "updatedAt" | "reviewEndsAt" | "submittedById", ExtArgs["result"]["artifact"]>
+export type ArtifactOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "title" | "description" | "type" | "sourceUrl" | "language" | "license" | "tags" | "status" | "cid" | "fileUrl" | "fileId" | "chainTxHash" | "chainBlock" | "anchoredAt" | "btcTxHash" | "createdAt" | "updatedAt" | "reviewEndsAt" | "submittedById", ExtArgs["result"]["artifact"]>
 export type ArtifactInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   submittedBy?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   votes?: boolean | Prisma.Artifact$votesArgs<ExtArgs>
@@ -1856,6 +1909,7 @@ export type $ArtifactPayload<ExtArgs extends runtime.Types.Extensions.InternalAr
     chainTxHash: string | null
     chainBlock: number | null
     anchoredAt: Date | null
+    btcTxHash: string | null
     createdAt: Date
     updatedAt: Date
     reviewEndsAt: Date | null
@@ -2304,6 +2358,7 @@ export interface ArtifactFieldRefs {
   readonly chainTxHash: Prisma.FieldRef<"Artifact", 'String'>
   readonly chainBlock: Prisma.FieldRef<"Artifact", 'Int'>
   readonly anchoredAt: Prisma.FieldRef<"Artifact", 'DateTime'>
+  readonly btcTxHash: Prisma.FieldRef<"Artifact", 'String'>
   readonly createdAt: Prisma.FieldRef<"Artifact", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"Artifact", 'DateTime'>
   readonly reviewEndsAt: Prisma.FieldRef<"Artifact", 'DateTime'>
@@ -2504,6 +2559,11 @@ export type ArtifactFindManyArgs<ExtArgs extends runtime.Types.Extensions.Intern
    * Skip the first `n` Artifacts.
    */
   skip?: number
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+   * 
+   * Filter by unique combinations of Artifacts.
+   */
   distinct?: Prisma.ArtifactScalarFieldEnum | Prisma.ArtifactScalarFieldEnum[]
 }
 

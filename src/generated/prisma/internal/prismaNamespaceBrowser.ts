@@ -114,6 +114,7 @@ export const ArtifactScalarFieldEnum = {
   chainTxHash: 'chainTxHash',
   chainBlock: 'chainBlock',
   anchoredAt: 'anchoredAt',
+  btcTxHash: 'btcTxHash',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
   reviewEndsAt: 'reviewEndsAt',

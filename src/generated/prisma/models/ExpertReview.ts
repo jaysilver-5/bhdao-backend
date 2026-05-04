@@ -168,7 +168,7 @@ export type ExpertReviewGroupByOutputType = {
   _max: ExpertReviewMaxAggregateOutputType | null
 }
 
-type GetExpertReviewGroupByPayload<T extends ExpertReviewGroupByArgs> = Prisma.PrismaPromise<
+export type GetExpertReviewGroupByPayload<T extends ExpertReviewGroupByArgs> = Prisma.PrismaPromise<
   Array<
     Prisma.PickEnumerable<ExpertReviewGroupByOutputType, T['by']> &
       {
@@ -1328,6 +1328,11 @@ export type ExpertReviewFindManyArgs<ExtArgs extends runtime.Types.Extensions.In
    * Skip the first `n` ExpertReviews.
    */
   skip?: number
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+   * 
+   * Filter by unique combinations of ExpertReviews.
+   */
   distinct?: Prisma.ExpertReviewScalarFieldEnum | Prisma.ExpertReviewScalarFieldEnum[]
 }
 
