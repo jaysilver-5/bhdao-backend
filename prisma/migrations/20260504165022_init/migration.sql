@@ -51,6 +51,7 @@ CREATE TABLE "Artifact" (
     "chainTxHash" TEXT,
     "chainBlock" INTEGER,
     "anchoredAt" TIMESTAMP(3),
+    "btcTxHash" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "reviewEndsAt" TIMESTAMP(3),
